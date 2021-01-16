@@ -38,6 +38,7 @@ mod log;
 #[macro_use]
 mod private;
 
+mod external_scope;
 mod job;
 mod join;
 mod latch;
@@ -52,6 +53,7 @@ mod util;
 mod compile_fail;
 mod test;
 
+pub use self::external_scope::{external_scope, ExternalScope};
 pub use self::join::{join, join_context};
 pub use self::registry::ThreadBuilder;
 pub use self::scope::{scope, Scope};

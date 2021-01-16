@@ -8,6 +8,7 @@ use crate::registry::{Registry, ThreadSpawn, WorkerThread};
 use crate::spawn;
 #[allow(deprecated)]
 use crate::Configuration;
+use crate::ExternalScope;
 use crate::{scope, Scope};
 use crate::{scope_fifo, ScopeFifo};
 use crate::{ThreadPoolBuildError, ThreadPoolBuilder};
@@ -219,6 +220,20 @@ impl ThreadPool {
         R: Send,
     {
         self.install(|| scope_fifo(op))
+    }
+
+    /// Creates a scope that spawns work into this thread-pool.
+    ///
+    /// See also: [the `external_scope()` function][external_scope].
+    ///
+    /// [external_scope]: fn.external_scope.html
+    pub fn external_scope<'scope, OP, R>(&self, op: OP) -> R
+    where
+        OP: FnOnce(&ExternalScope<'scope>) -> R,
+    {
+        assert!(Registry::current().id() != self.registry.id(),
+                "Can't call external_scope() from a worker thread of the threadpool, this would likely deadlock");
+        ExternalScope::<'scope>::run(self.registry.clone(), op)
     }
 
     /// Spawns an asynchronous task in this thread-pool. This task will

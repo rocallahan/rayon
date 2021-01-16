@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 #[allow(deprecated)]
 use crate::Configuration;
-use crate::{join, Scope, ScopeFifo, ThreadPool, ThreadPoolBuilder};
+use crate::{join, ExternalScope, Scope, ScopeFifo, ThreadPool, ThreadPoolBuilder};
 
 #[test]
 #[should_panic(expected = "Hello, world!")]
@@ -335,4 +335,19 @@ fn nested_fifo_scopes() {
         }
     });
     assert_eq!(counter.into_inner(), pools.len());
+}
+
+#[test]
+fn external_scope_no_deadlock() {
+    let pool = ThreadPoolBuilder::new().num_threads(1).build().unwrap();
+    let (tx, rx) = channel();
+    let rx_ref = &rx;
+    pool.external_scope(move |s| {
+        // With regular scopes this closure would never run because this scope op
+        // itself would block the only worker thread.
+        s.spawn(move |_| {
+            tx.send(()).unwrap();
+        });
+        rx_ref.recv().unwrap();
+    });
 }
